@@ -194,43 +194,6 @@ def main():
     plt.show()
 
 
-    #-----CHECK IS THE REST QUAD IS WELL MAP TO THE DEFORMED QUAD USING BASIS FUNCTION-----
-    #cf https://stackoverflow.com/questions/71735261/how-can-i-show-transformation-of-coordinate-grid-lines-in-python (avec grid = les 4 cotes du rest quad)
-    mapBorders = []
-    t = np.linspace(0.0, 1.0, res)
-    t = np.expand_dims(t, 1)
-    for ind in range(4):
-        n_ind = (ind + 1) % 4
-        start = np.expand_dims(restCorners[ind], 0)
-        end = np.expand_dims(restCorners[n_ind], 0)
-        sampledPoints = (1.0 - t) * start + t * end
-        W = []
-        for i in range(4) :
-            W.append(basisCoeffs[i, 0] * sampledPoints[:, 0] * sampledPoints[:, 1]
-                 + basisCoeffs[i, 1] * sampledPoints[:, 0]
-                 + basisCoeffs[i, 2] * sampledPoints[:, 1] + basisCoeffs[i, 3])
-        mapB = np.zeros((res, 2))
-        for i in range(4):
-            mapB += np.expand_dims(W[i], 1) * np.expand_dims(defCorners[i], 0)
-        mapBorders.append(mapB)
-    fig, ax = plt.subplots(1, 1)
-    ax.set_aspect('equal', 'box')
-    ax.set_xlim(xLim[0], xLim[1])
-    ax.set_ylim(yLim[0], yLim[1])
-    drawQuad(ax, defCorners, alpha=0.25)
-    for ind in range(4):
-        ax.plot(mapBorders[ind][:, 0], mapBorders[ind][:, 1], c = "green")
-        #ax.scatter(mapBorders[ind][:, 0], mapBorders[ind][:, 1], s = 5, facecolors='none', edgecolors='green')
-    plt.show()
-
-
-
-
-
-
-
-
-
 
 if __name__ == "__main__":
     main()
