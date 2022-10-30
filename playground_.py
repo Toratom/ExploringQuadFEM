@@ -48,10 +48,10 @@ class Interaction(object):
     def loadDefault(self, event):
         self.initAxis()
         self.wipCorners.clear()
+        self.wipCorners.append([-1.0, -1.0])
+        self.wipCorners.append([1.0, -1.0])
         self.wipCorners.append([1.0, 1.0])
-        self.wipCorners.append([1.0, 0.0])
-        self.wipCorners.append([0.0, 0.0])
-        self.wipCorners.append([0.0, 1.0])
+        self.wipCorners.append([-1.0, 1.0])
         self.corners = self.orderQuad(np.array(self.wipCorners))
 
         for ind in range(len(self.corners)) :
@@ -96,6 +96,24 @@ def mirrored(maxVal, halfN):
     end = np.linspace(0, maxVal, halfN)
     start = list(-end[-1:0:-1])
     return start + list(end)
+
+def computeJ(basisCoeffs, corners, u):
+    J = np.zeros((2,2), dtype = float)
+    for ind in range(4):
+        x = corners[ind, :].reshape((-1, 1))
+        gradWI = np.ndarray((1, 2))
+        gradWI[0, 0] = basisCoeffs[ind, 0] * u[1] + basisCoeffs[ind, 1]
+        gradWI[0, 1] = basisCoeffs[ind, 0] * u[0] + basisCoeffs[ind, 2]
+        J += x.dot(gradWI)
+    return J
+
+def mapPoint(basisCoeffs, corners, u):
+    x_ = np.zeros((2,))
+    for ind in range(4):
+        x = corners[ind, :]
+        wi = basisCoeffs[ind, 0] * u[0] * u[1] + basisCoeffs[ind, 1] * u[0] + basisCoeffs[ind, 2] * u[1] + basisCoeffs[ind, 3]
+        x_ += wi * x
+    return x_
 
 
 def main():
@@ -191,6 +209,48 @@ def main():
     cbar_ax = fig1.add_axes([0.85, 0.15, 0.05, 0.7])
     fig1.colorbar(CS, cax = cbar_ax)
     fig1.subplots_adjust(right=0.8)
+    plt.show()
+
+    #-----SAMPLE DEFORMATION GRAD-----
+    sampledPoints = canonCorners / 3.0
+    Fs = []
+    for u in sampledPoints:
+        Jdef = computeJ(basisCoeffs, defCorners, u)
+        Jrest = computeJ(basisCoeffs, restCorners, u)
+        F = Jdef.dot(np.linalg.inv(Jrest))
+        Fs.append(F)
+        print(u)
+        print(F)
+        print("")
+    circle = np.ndarray((2, res + 1)) #Each columns are a point on the cercle
+    for ind in range(res + 1):
+        theta = (2.0 * np.pi) * (1.0 * ind) / res
+        circle[0, ind] = np.cos(theta)
+        circle[1, ind] = np.sin(theta)
+    defCircles = []
+    for ind in range(4):
+        defCircles.append((Fs[ind].dot(circle)).transpose())
+    circle = circle.transpose()
+
+    fig, axs = plt.subplots(1, 2, constrained_layout=True)
+    drawQuad(axs[0], restCorners)
+    for ind in range(4):
+        x_ = mapPoint(basisCoeffs, restCorners, sampledPoints[ind, :])
+        restCircle = 0.2 * circle + x_
+        axs[0].plot(restCircle[:, 0], restCircle[:, 1])
+        axs[0].scatter(x_[0], x_[1], s = 20)
+    drawQuad(axs[1], defCorners)
+    for ind in range(4):
+        x_ = mapPoint(basisCoeffs, defCorners, sampledPoints[ind, :])
+        defCircle = 0.2 * defCircles[ind] + x_
+        axs[1].plot(defCircle[:, 0], defCircle[:, 1])
+        axs[1].scatter(x_[0], x_[1], s = 20)
+    axs[0].set_aspect('equal', 'box')
+    axs[0].set_xlim(xLim[0], xLim[1])
+    axs[0].set_ylim(yLim[0], yLim[1])
+    axs[1].set_aspect('equal', 'box')
+    axs[1].set_xlim(xLim[0], xLim[1])
+    axs[1].set_ylim(yLim[0], yLim[1])
     plt.show()
 
 
